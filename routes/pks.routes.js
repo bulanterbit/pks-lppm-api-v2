@@ -1,31 +1,28 @@
 import { Router } from "express";
 const pksRouter = Router();
 
-pksRouter.get("/", (req, res) => {
-  res.send("Fungsi Akses semua PKS");
-});
+import {
+  createPKS,
+  getAllPKS,
+  getPKSById,
+  updatePKS,
+  deletePKS,
+} from "../controllers/pks.controller.js";
 
-pksRouter.get("/:id", (req, res) => {
-  const { id } = req.params;
-  res.send(`Fungsi Akses PKS dengan ID: ${id}`);
-});
+const router = Router();
 
-// Delete all PKS
-pksRouter.delete("/", (req, res) => {
-  res.send("Fungsi Delete semua PKS");
-});
+// CREATE
+router.post("/", createPKS);
 
-// Delete PKS by ID
-pksRouter.delete("/:id", (req, res) => {
-  const { id } = req.params;
-  res.send(`Fungsi Delete PKS dengan ID: ${id}`);
-});
+// READ
+router.get("/", getAllPKS); // semua PKS (dengan filter optional)
+router.get("/:id", getPKSById); // detail PKS by ID
 
-// Edit PKS by ID
-pksRouter.put("/:id", (req, res) => {
-  const { id } = req.params;
-  res.send(`Fungsi Edit PKS dengan ID: ${id}`);
-});
+// UPDATE (PATCH lebih cocok untuk partial update)
+router.patch("/:id", updatePKS);
+
+// DELETE
+router.delete("/:id", deletePKS);
 
 // Edit file PKS (replace file lama)
 pksRouter.put("/:id/file", (req, res) => {

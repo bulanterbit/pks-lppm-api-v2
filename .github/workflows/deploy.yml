@@ -60,5 +60,5 @@ jobs:
             EOF
 
             # Start/restart PM2
-            pm2 start ecosystem.config.js --env production || pm2 restart pks-api --update-env
+            pm2 start ecosystem.config.cjs --env production || pm2 restart pks-api --update-env
             pm2 save
