@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js untuk build/test
+      # 2. Setup Node.js untuk build & test
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -25,27 +25,23 @@ jobs:
           npm ci
           npm test || echo "⚠️ No tests defined, skipping"
 
-      # 4. Sync project files ke VPS pakai rsync
-      - name: Sync project files to VPS
-        uses: appleboy/ssh-action@v1.0.3
+      # 4. Build project (hasilnya di folder dist/)
+      - name: Build project
+        run: |
+          npm run build
+
+      # 5. Sync build files + package.json ke VPS
+      - name: Upload build files to VPS
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOSTINGER_IP }}
           username: ${{ secrets.HOSTINGER_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          script: |
-            set -e
-            mkdir -p /var/www/pks-api
+          source: "dist/*,package*.json"
+          target: "/var/www/pks-api"
+          overwrite: true
 
-            rsync -avz --delete \
-              --exclude '.git*' \
-              --exclude 'node_modules' \
-              --exclude '.github' \
-              --exclude '.env*' \
-              --exclude 'tests' \
-              --exclude 'README.md' \
-              /github/workspace/ /var/www/pks-api
-
-      # 5. Install deps + restart pm2 di VPS
+      # 6. Jalankan di VPS (install deps + set .env + pm2 restart)
       - name: Run PM2 on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
