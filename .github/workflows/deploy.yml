@@ -9,39 +9,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code dari repo (di runner GitHub)
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js untuk build & test
+      # 2. Setup Node.js untuk test (opsional)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      # 3. Install deps + optional test
+      # 3. Install deps + test (opsional, bisa di-skip kalau belum ada test)
       - name: Install & Test
         run: |
           npm ci
           npm test || echo "⚠️ No tests defined, skipping"
 
-      # 4. Build project (hasilnya di folder dist/)
-      - name: Build project
-        run: |
-          npm run build
-
-      # 5. Sync build files + package.json ke VPS
-      - name: Upload build files to VPS
+      # 4. Upload source code ke VPS (exclude yang tidak perlu)
+      - name: Upload source code to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOSTINGER_IP }}
           username: ${{ secrets.HOSTINGER_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          source: "dist/*,package*.json"
+          source: ".,!node_modules,!*.env,!README.md,!tests,!.*"
           target: "/var/www/pks-api"
           overwrite: true
 
-      # 6. Jalankan di VPS (install deps + set .env + pm2 restart)
+      # 5. Install deps + restart pm2 di VPS
       - name: Run PM2 on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -52,8 +47,10 @@ jobs:
           script: |
             cd /var/www/pks-api
 
+            # Install dep fresh
             npm ci --omit=dev
 
+            # Generate env production
             cat > .env.production <<EOF
             NODE_ENV=production
             PORT=${PORT_PROD}
@@ -62,5 +59,6 @@ jobs:
             UPLOAD_DIR=${UPLOAD_DIR_PROD}
             EOF
 
+            # Start/restart PM2
             pm2 start ecosystem.config.js --env production || pm2 restart pks-api --update-env
             pm2 save
