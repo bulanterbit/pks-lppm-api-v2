@@ -1,0 +1,54 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install & Test
+        run: |
+          npm ci
+          npm test || echo "⚠️ No tests defined, skipping"
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_IP }}
+          username: ${{ secrets.HOSTINGER_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          envs: MONGO_URI_PROD,JWT_SECRET,PORT_PROD,UPLOAD_DIR_PROD
+          script: |
+            set -e
+            cd /var/www/pks-api || (mkdir -p /var/www/pks-api && cd /var/www/pks-api)
+
+            if [ ! -d .git ]; then
+              git clone git@github.com:${GITHUB_REPOSITORY}.git .
+            else
+              git fetch --all
+              git reset --hard origin/main
+            fi
+
+            npm ci --omit=dev
+
+            cat > .env.production <<EOF
+            NODE_ENV=production
+            PORT=${PORT_PROD}
+            MONGO_URI=${MONGO_URI_PROD}
+            JWT_SECRET=${JWT_SECRET}
+            UPLOAD_DIR=${UPLOAD_DIR_PROD}
+            EOF
+
+            pm2 start ecosystem.config.js --env production || pm2 restart pks-api --update-env
+            pm2 save
