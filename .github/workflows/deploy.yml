@@ -53,7 +53,7 @@ jobs:
             # Generate env production
             cat > .env.production <<EOF
             NODE_ENV=production
-            PORT=${PORT_PROD}
+            PORT=8080
             MONGO_URI=${MONGO_URI_PROD}
             JWT_SECRET=${JWT_SECRET}
             UPLOAD_DIR=${UPLOAD_DIR_PROD}
