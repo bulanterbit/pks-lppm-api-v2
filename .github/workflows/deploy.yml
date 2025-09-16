@@ -47,18 +47,22 @@ jobs:
           script: |
             cd /var/www/pks-api
 
-            # Install dep fresh
             npm ci --omit=dev
 
-            # Generate env production
+
+            echo "PORT is: ${PORT_PROD}"
+            echo "MONGO_URI is: ${MONGO_URI_PROD}"
+            echo "JWT_SECRET is: ${JWT_SECRET}"
+            echo "UPLOAD_DIR is: ${UPLOAD_DIR_PROD}"
+
+
             cat > .env.production <<EOF
             NODE_ENV=production
-            PORT=8080
+            PORT=${PORT_PROD}
             MONGO_URI=${MONGO_URI_PROD}
             JWT_SECRET=${JWT_SECRET}
             UPLOAD_DIR=${UPLOAD_DIR_PROD}
             EOF
 
-            # Start/restart PM2
             pm2 start ecosystem.config.cjs --env production || pm2 restart pks-api --update-env
             pm2 save
